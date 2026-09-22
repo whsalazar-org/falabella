@@ -1,12 +1,12 @@
 # falabella
 
-A simple static website built with plain HTML, CSS and JavaScript &mdash; no build step, no dependencies.
+A simple static website built with plain HTML, CSS and JavaScript — no build step, no dependencies.
 
 ## Files
 
-- `index.html` &mdash; page markup
-- `styles.css` &mdash; styling
-- `script.js` &mdash; small bit of interactivity
+- `index.html` — page markup
+- `styles.css` — styling
+- `script.js` — small bit of interactivity
 
 ## Running locally
 
