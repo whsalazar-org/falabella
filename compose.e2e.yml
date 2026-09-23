@@ -1,0 +1,47 @@
+# End-to-end override: points the API at a deterministic mock provider so the
+# suite runs without a real AI_API_KEY, and adds health checks so
+# `docker compose ... up --wait` blocks until the stack is actually serving.
+#
+#   docker compose -f compose.yml -f compose.e2e.yml up --build -d --wait
+services:
+  frontend:
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  backend:
+    environment:
+      AI_API_KEY: e2e-test-key
+      AI_API_URL: http://mock-provider:9090/v1/chat/completions
+      AI_MODELS: gpt-4o-mini,gpt-4.1-mini
+      FRONTEND_ORIGIN: http://localhost:3000
+      LANGFUSE_PUBLIC_KEY: ""
+      LANGFUSE_SECRET_KEY: ""
+    depends_on:
+      mock-provider:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  kong:
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mock-provider:
+    build: ./mock-provider
+    environment:
+      PORT: "9090"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
