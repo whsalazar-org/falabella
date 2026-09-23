@@ -1,0 +1,143 @@
+name: E2E coverage
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "frontend/src/app/**"
+      - "frontend/e2e/**"
+      - "frontend/scripts/e2e-coverage-gate.mjs"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - "frontend/playwright.config.ts"
+      - "kong/kong.yml"
+      - "compose.yml"
+      - "compose.e2e.yml"
+      - "mock-provider/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  E2E_COVERAGE_GATE_MODE: warn
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    if: "${{ !contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Run Playwright E2E suite
+        run: make test-e2e
+
+      - name: Upload Playwright report
+        if: "${{ always() }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Playwright JSON results
+        if: "${{ always() }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: frontend/e2e-results.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Tear down E2E stack
+        if: "${{ always() }}"
+        run: make e2e-down
+
+  coverage-gate:
+    name: E2E coverage gate
+    runs-on: ubuntu-latest
+    if: "${{ !contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}"
+    outputs:
+      status: ${{ steps.coverage.outputs.status }}
+      uncovered: ${{ steps.coverage.outputs.uncovered }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Run coverage gate
+        id: coverage
+        run: |
+          npm run e2e:coverage -- \
+            --base "origin/${{ github.base_ref }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --mode "${E2E_COVERAGE_GATE_MODE}"
+        working-directory: frontend
+
+      - name: Comment with coverage guidance
+        if: "${{ steps.coverage.outputs.status == 'failed' }}"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const uncovered = `${{ steps.coverage.outputs.uncovered }}`.trim();
+            const body = [
+              "## E2E coverage needed",
+              "",
+              "The coverage gate found E2E-relevant changes that are not mapped to a Playwright spec:",
+              "",
+              uncovered
+                ? uncovered.split(/\s+/).map((file) => `- \`${file}\``).join("\n")
+                : "- Coverage map consistency failed; see the job summary for details.",
+              "",
+              "Add or extend a spec in `frontend/e2e/` and update `frontend/e2e/coverage-map.yml`.",
+              "You can comment `@e2e-test-author` on this PR, or run the `write-e2e-test` skill locally.",
+              "",
+              "If E2E coverage is genuinely not required, add the `e2e-coverage: not-required` label and a PR comment explaining why."
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+  coverage-label:
+    name: E2E coverage label acknowledged
+    runs-on: ubuntu-latest
+    if: "${{ contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}"
+    steps:
+      - name: Acknowledge escape hatch
+        run: |
+          echo "The e2e-coverage: not-required label is present."
+          echo "A maintainer must ensure the pull request includes a justification comment."

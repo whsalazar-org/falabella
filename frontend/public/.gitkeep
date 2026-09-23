@@ -1,0 +1,1 @@
+# Keeps the static asset directory present; the frontend Dockerfile copies it.

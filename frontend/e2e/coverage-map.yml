@@ -1,0 +1,100 @@
+# E2E coverage map
+#
+# Machine-checkable link between the behaviour-bearing source of this repo and
+# the Playwright specs that exercise it. `scripts/e2e-coverage-gate.mjs` reads
+# this file on every pull request to decide whether the changed surfaces are
+# covered, so it must be kept in sync with the suite.
+#
+# Rules enforced by the gate:
+#   * every `specs` entry (a path relative to `frontend/`) must exist on disk;
+#   * every feature `id` must appear as a Playwright tag (`@<id>`) in each of
+#     its specs;
+#   * every tag used by a spec must be declared here (prevents map drift);
+#   * every changed path classified as E2E-relevant must match at least one
+#     feature `paths` glob.
+#
+# Paths are repository-root relative globs (`*` matches within a path segment,
+# `**` matches across segments).
+
+version: 1
+
+# Changes matching `relevant` need E2E coverage; `exempt` wins over `relevant`.
+change_rules:
+  relevant:
+    - backend/**
+    - frontend/src/app/**
+    - kong/kong.yml
+    - compose.yml
+    - compose.e2e.yml
+    - mock-provider/**
+  exempt:
+    - "**/*.md"
+    - "**/Dockerfile"
+    - "**/.dockerignore"
+    - "**/*_test.go"
+    - backend/go.sum
+    - frontend/package-lock.json
+    - frontend/src/app/favicon.ico
+
+features:
+  - id: api-health
+    description: Kong gateway routing and the API health probe.
+    paths:
+      - kong/kong.yml
+      - compose.yml
+      - compose.e2e.yml
+      - backend/main.go
+    api_routes:
+      - GET /health
+    specs:
+      - e2e/api-health.spec.ts
+
+  - id: models-catalog
+    description: >-
+      The model catalogue served by the API and rendered in the playground
+      model selector and provisioning summary.
+    paths:
+      - backend/main.go
+      - frontend/src/app/page.tsx
+    api_routes:
+      - GET /v1/models
+    specs:
+      - e2e/models.spec.ts
+
+  - id: chat-completion
+    description: >-
+      Successful prompt round trip from the composer through Kong and the API
+      to the model provider, and back into the transcript.
+    paths:
+      - backend/main.go
+      - frontend/src/app/page.tsx
+      - mock-provider/main.go
+    api_routes:
+      - POST /v1/chat
+    specs:
+      - e2e/chat.spec.ts
+
+  - id: chat-error-handling
+    description: >-
+      Request validation rejections and provider failures surfaced to the user
+      without breaking the playground.
+    paths:
+      - backend/main.go
+      - frontend/src/app/page.tsx
+      - mock-provider/main.go
+    api_routes:
+      - POST /v1/chat
+    specs:
+      - e2e/chat-errors.spec.ts
+
+  - id: workspace-shell
+    description: >-
+      Tenant selector, agent approval and artifact metadata, execution flow
+      panel, and the empty state of the playground.
+    paths:
+      - frontend/src/app/page.tsx
+      - frontend/src/app/layout.tsx
+      - frontend/src/app/globals.css
+      - frontend/src/app/page.module.css
+    specs:
+      - e2e/workspace.spec.ts
