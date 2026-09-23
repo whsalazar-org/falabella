@@ -5,6 +5,7 @@ import {
   openPlayground,
   providerFailurePrompt,
   sendPrompt,
+  transcript,
 } from "./fixtures";
 
 test.describe("chat error handling", { tag: "@chat-error-handling" }, () => {
@@ -47,7 +48,7 @@ test.describe("chat error handling", { tag: "@chat-error-handling" }, () => {
 
     await expect(page.getByText("mock provider failure")).toBeHidden();
     await expect(
-      page.getByText("Mock answer from", { exact: false }),
+      transcript(page).getByText("Mock answer from", { exact: false }),
     ).toBeVisible();
   });
 });

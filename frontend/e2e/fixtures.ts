@@ -29,6 +29,11 @@ export async function openPlayground(page: Page) {
   return modelSelect;
 }
 
+/** The live conversation transcript. */
+export function transcript(page: Page) {
+  return page.locator('[aria-live="polite"]');
+}
+
 /** Sends a prompt through the composer. */
 export async function sendPrompt(page: Page, prompt: string) {
   await page.getByLabel("Message").fill(prompt);

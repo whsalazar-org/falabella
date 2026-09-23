@@ -4,6 +4,7 @@ import {
   expectedModels,
   openPlayground,
   sendPrompt,
+  transcript,
 } from "./fixtures";
 
 test.describe("chat completion", { tag: "@chat-completion" }, () => {
@@ -28,13 +29,12 @@ test.describe("chat completion", { tag: "@chat-completion" }, () => {
 
     await sendPrompt(page, "Where is my order?");
 
-    await expect(page.getByText("You", { exact: true })).toBeVisible();
-    await expect(
-      page.getByText("Customer Support Copilot", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Mock answer from", { exact: false }),
-    ).toBeVisible();
+    const messages = transcript(page).getByRole("article");
+    await expect(messages).toHaveCount(2);
+    await expect(messages.first()).toContainText("Where is my order?");
+    await expect(messages.last()).toContainText(
+      `Mock answer from ${expectedModels[0]}: Where is my order?`,
+    );
   });
 
   test("a starter prompt fills the composer", async ({ page }) => {
