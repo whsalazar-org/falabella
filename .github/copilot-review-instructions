@@ -1,0 +1,21 @@
+For every pull request, check whether the diff is E2E-relevant before reviewing
+implementation details.
+
+Treat changes under `backend/**`, `frontend/src/app/**`, `kong/kong.yml`,
+`compose.yml`, `compose.e2e.yml`, or `mock-provider/**` as E2E-relevant unless
+they are docs, Dockerfiles, lockfiles, or Go unit tests as defined in
+`frontend/e2e/coverage-map.yml`.
+
+For each E2E-relevant diff:
+
+1. Read `frontend/e2e/coverage-map.yml`.
+2. Identify the feature id whose `paths` and optional `api_routes` cover the
+   changed behaviour.
+3. State the existing Playwright spec that covers the behaviour, or explicitly
+   flag the coverage gap.
+4. When flagging a gap, recommend a concrete spec name, feature id, and scenario
+   for the author or `@e2e-test-author` to add.
+
+Review comments are advisory. Do not author the test directly during Copilot code
+review; recommend invoking `@e2e-test-author` or running the `write-e2e-test`
+skill when coverage is missing.
