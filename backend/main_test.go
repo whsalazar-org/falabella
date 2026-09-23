@@ -51,8 +51,9 @@ func TestChatRejectsUnsupportedModel(t *testing.T) {
 }
 
 func TestCompleteReturnsProviderMessage(t *testing.T) {
+	expectedAuth := "Bearer " + "test-" + "key"
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "******" {
+		if r.Header.Get("Authorization") != expectedAuth {
 			t.Error("provider request is missing authorization")
 		}
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"Hello!"}}]}`))
