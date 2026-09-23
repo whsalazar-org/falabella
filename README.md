@@ -62,8 +62,9 @@ make test-e2e
 make e2e-coverage BASE=origin/main
 ```
 
-`make test-e2e` starts the Compose stack with `compose.e2e.yml`, points the API
-at the deterministic `mock-provider`, runs the Playwright suite, and tears the
-stack down. `make e2e-coverage` checks changed files against
+`make test-e2e` installs the Playwright Chromium browser if needed, starts the
+Compose stack with `compose.e2e.yml`, points the API at the deterministic
+`mock-provider`, runs the Playwright suite, and tears the stack down.
+`make e2e-coverage` checks changed files against
 `frontend/e2e/coverage-map.yml`; behaviour-changing PRs should either map to an
 existing feature or add/update a Playwright spec and coverage-map entry.

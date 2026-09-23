@@ -1,4 +1,4 @@
-.PHONY: dev test build test-e2e e2e-up e2e-down e2e-coverage
+.PHONY: dev test build test-e2e e2e-browsers e2e-up e2e-down e2e-coverage
 
 COMPOSE_E2E := docker compose -f compose.yml -f compose.e2e.yml
 
@@ -18,11 +18,14 @@ build:
 
 # Brings the stack up against the deterministic mock provider, runs the
 # Playwright suite, then tears the stack down.
-test-e2e: e2e-up
+test-e2e: e2e-browsers e2e-up
 	cd frontend && npm run test:e2e; \
 	status=$$?; \
-	$(MAKE) e2e-down; \
+	$(MAKE) -C $(CURDIR) e2e-down; \
 	exit $$status
+
+e2e-browsers:
+	cd frontend && npx playwright install chromium
 
 e2e-up:
 	$(COMPOSE_E2E) up --build -d --wait

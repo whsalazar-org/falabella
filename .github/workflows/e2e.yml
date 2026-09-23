@@ -26,7 +26,7 @@ jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}
+    if: "${{ !contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
         run: make test-e2e
 
       - name: Upload Playwright report
-        if: ${{ always() }}
+        if: "${{ always() }}"
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -59,7 +59,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Playwright JSON results
-        if: ${{ always() }}
+        if: "${{ always() }}"
         uses: actions/upload-artifact@v4
         with:
           name: playwright-results
@@ -68,13 +68,13 @@ jobs:
           retention-days: 14
 
       - name: Tear down E2E stack
-        if: ${{ always() }}
+        if: "${{ always() }}"
         run: make e2e-down
 
   coverage-gate:
     name: E2E coverage gate
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}
+    if: "${{ !contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}"
     outputs:
       status: ${{ steps.coverage.outputs.status }}
       uncovered: ${{ steps.coverage.outputs.uncovered }}
@@ -105,7 +105,7 @@ jobs:
         working-directory: frontend
 
       - name: Comment with coverage guidance
-        if: ${{ steps.coverage.outputs.status == 'failed' }}
+        if: "${{ steps.coverage.outputs.status == 'failed' }}"
         uses: actions/github-script@v7
         with:
           script: |
@@ -135,7 +135,7 @@ jobs:
   coverage-label:
     name: E2E coverage label acknowledged
     runs-on: ubuntu-latest
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}
+    if: "${{ contains(github.event.pull_request.labels.*.name, 'e2e-coverage: not-required') }}"
     steps:
       - name: Acknowledge escape hatch
         run: |
