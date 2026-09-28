@@ -78,6 +78,20 @@ Two repository skills exist for this workflow:
 `.github/agents/e2e-test-author.md` composes both and can be invoked from a pull
 request comment as `@e2e-test-author`.
 
+## Diagnosing reported problems
+
+When an issue reports a problem or error with the framework, trace it to the
+layer that owns it before changing anything. Two repository skills exist for
+this workflow:
+
+- `.github/skills/diagnose-issue/` — reproduce the symptom and localize the root
+  cause to the frontend, gateway, API, provider, or Compose wiring.
+- `.github/skills/propose-fix/` — turn a confirmed root cause into a reviewable
+  proposal with a regression test and verification commands.
+
+`.github/agents/issue-diagnostician.md` composes both and can be invoked from an
+issue or pull request comment as `@issue-diagnostician`.
+
 ## Code conventions
 
 - Go: standard library first; no new dependencies without a clear need. Handlers
