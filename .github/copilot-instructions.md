@@ -95,8 +95,9 @@ issue or pull request comment as `@issue-diagnostician`.
 `.github/workflows/jira-issue-diagnosis.yml` runs the same agent, analysis only,
 when Jira Automation sends a `jira_ticket_created` repository dispatch (or when
 started manually with an issue key). It reads the ticket from Jira and posts the
-diagnosis back as a Jira comment. It needs the `JIRA_BASE_URL` repository
-variable and the `JIRA_EMAIL` and `JIRA_API_TOKEN` secrets.
+diagnosis back as a Jira comment. It needs the `JIRA_BASE_URL` and `APP_ID`
+repository variables and the `JIRA_EMAIL`, `JIRA_API_TOKEN`, and `PRIVATE_KEY`
+secrets; Copilot CLI authenticates with the GitHub App's installation token.
 
 ## Code conventions
 
