@@ -92,6 +92,12 @@ this workflow:
 `.github/agents/issue-diagnostician.md` composes both and can be invoked from an
 issue or pull request comment as `@issue-diagnostician`.
 
+`.github/workflows/jira-issue-diagnosis.yml` runs the same agent, analysis only,
+when Jira Automation sends a `jira_ticket_created` repository dispatch (or when
+started manually with an issue key). It reads the ticket from Jira and posts the
+diagnosis back as a Jira comment. It needs the `JIRA_BASE_URL` repository
+variable and the `JIRA_EMAIL` and `JIRA_API_TOKEN` secrets.
+
 ## Code conventions
 
 - Go: standard library first; no new dependencies without a clear need. Handlers
