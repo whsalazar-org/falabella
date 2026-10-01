@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Issue triage</title>
+<style>
+  :root {
+    --approve: var(--true-color-green, #1a7f37);
+    --approve-muted: var(--true-color-green-muted, rgba(26, 127, 55, 0.15));
+    --reject: var(--true-color-red, #cf222e);
+    --reject-muted: var(--true-color-red-muted, rgba(207, 34, 46, 0.15));
+    --fg: var(--text-color-default, #1f2328);
+    --muted: var(--text-color-muted, #59636e);
+    --bg: var(--background-color-default, #ffffff);
+    --border: var(--border-color-default, #d1d9e0);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+    font-size: var(--text-body-medium, 14px);
+    line-height: var(--leading-body-medium, 20px);
+    overflow: hidden;
+    user-select: none;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: var(--text-body-large, 16px); font-weight: var(--font-weight-semibold, 600); }
+  header .count { color: var(--muted); }
+  header .spacer { flex: 1; }
+  button {
+    font: inherit;
+    color: var(--fg);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button:focus-visible { outline: 2px solid var(--color-focus-outline, #0969da); outline-offset: 2px; }
+  #error {
+    display: none;
+    margin: 8px 16px 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--reject-muted);
+    color: var(--reject);
+    user-select: text;
+  }
+  #error.show { display: block; }
+  #deck {
+    position: relative;
+    flex: 1;
+    margin: 16px auto 8px;
+    width: min(560px, calc(100% - 32px));
+    min-height: 0;
+  }
+  .card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+    touch-action: none;
+    cursor: grab;
+    will-change: transform;
+  }
+  .card.behind { transform: scale(0.95) translateY(12px); opacity: 0.6; pointer-events: none; }
+  .card.dragging { cursor: grabbing; transition: none; }
+  .card.animate { transition: transform 0.28s ease, opacity 0.28s ease; }
+  .card .meta { color: var(--muted); font-size: var(--text-body-small, 12px); }
+  .card h2 {
+    margin: 0;
+    font-size: var(--text-title-small, 20px);
+    line-height: var(--leading-title-small, 26px);
+    font-weight: var(--font-weight-semibold, 600);
+  }
+  .card .num { color: var(--muted); font-weight: normal; }
+  .labels { display: flex; flex-wrap: wrap; gap: 4px; }
+  .label { padding: 0 8px; border-radius: 999px; border: 1px solid var(--border); font-size: var(--text-body-small, 12px); }
+  .body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+    font-size: var(--text-code-block, 12px);
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    user-select: text;
+  }
+  .card a { color: var(--true-color-blue, #0969da); }
+  .stamp {
+    position: absolute;
+    top: 24px;
+    padding: 4px 12px;
+    border: 3px solid;
+    border-radius: 8px;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: var(--bg);
+  }
+  /* Stamps sit on the trailing edge so they stay visible as the card leaves. */
+  .stamp.ship { left: 24px; color: var(--approve); border-color: var(--approve); transform: rotate(12deg); }
+  .stamp.nope { right: 24px; color: var(--reject); border-color: var(--reject); transform: rotate(-12deg); }
+  .empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--muted);
+    text-align: center;
+  }
+  footer {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 16px 16px;
+  }
+  footer .big { padding: 10px 22px; border-radius: 999px; font-weight: var(--font-weight-semibold, 600); }
+  footer .reject { color: var(--reject); border-color: var(--reject); }
+  footer .reject:hover:not(:disabled) { background: var(--reject-muted); }
+  footer .approve { color: var(--approve); border-color: var(--approve); }
+  footer .approve:hover:not(:disabled) { background: var(--approve-muted); }
+  .hint { text-align: center; color: var(--muted); font-size: var(--text-body-small, 12px); padding-bottom: 8px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1 id="repo">Issue triage</h1>
+    <span class="count" id="count"></span>
+    <span class="spacer"></span>
+    <button id="undo" disabled title="Undo last decision (Z)">Undo</button>
+    <button id="refresh" title="Reload issues (R)">Refresh</button>
+  </header>
+  <div id="error" role="alert"></div>
+  <main id="deck" aria-live="polite"></main>
+  <footer>
+    <button class="big reject" id="reject" disabled>✕ Reject</button>
+    <button class="big approve" id="approve" disabled>✓ Ship</button>
+  </footer>
+  <div class="hint">Drag the card, or press ← to reject and → to ship.</div>
+
+<script>
+  const THRESHOLD = 110;
+  const deck = document.getElementById("deck");
+  const errorBox = document.getElementById("error");
+  const undoButton = document.getElementById("undo");
+  const approveButton = document.getElementById("approve");
+  const rejectButton = document.getElementById("reject");
+  let state = { repo: "", loaded: false, issues: [], lastDecision: null, error: null };
+  let busy = false;
+
+  function el(tag, props = {}, children = []) {
+    const node = document.createElement(tag);
+    Object.assign(node, props);
+    for (const child of children) node.append(child);
+    return node;
+  }
+
+  function showError(message) {
+    errorBox.textContent = message || "";
+    errorBox.classList.toggle("show", Boolean(message));
+  }
+
+  function renderCard(issue, behind) {
+    const labels = el("div", { className: "labels" },
+      issue.labels.map((label) => {
+        const chip = el("span", { className: "label", textContent: label.name });
+        chip.style.borderColor = "#" + label.color;
+        return chip;
+      }));
+    const created = new Date(issue.createdAt).toLocaleDateString();
+    const link = el("a", { href: issue.url, target: "_blank", rel: "noopener", textContent: "Open on GitHub" });
+    link.addEventListener("pointerdown", (event) => event.stopPropagation());
+    const card = el("article", { className: "card" + (behind ? " behind" : "") }, [
+      el("div", { className: "stamp ship", textContent: "SHIP" }),
+      el("div", { className: "stamp nope", textContent: "REJECT" }),
+      el("div", { className: "meta" }, [
+        `@${issue.author} · opened ${created} · ${issue.commentCount} comment${issue.commentCount === 1 ? "" : "s"} · `,
+        link,
+      ]),
+      el("h2", {}, [el("span", { className: "num", textContent: `#${issue.number} ` }), issue.title]),
+      labels,
+      el("div", { className: "body", textContent: issue.body.trim() || "No description provided." }),
+    ]);
+    card.querySelector(".body").addEventListener("pointerdown", (event) => event.stopPropagation());
+    if (!behind) attachDrag(card, issue);
+    return card;
+  }
+
+  function render() {
+    document.getElementById("repo").textContent = state.repo ? `Issue triage · ${state.repo}` : "Issue triage";
+    document.getElementById("count").textContent = state.loaded ? `${state.issues.length} to review` : "Loading…";
+    undoButton.disabled = busy || !state.lastDecision;
+    undoButton.title = state.lastDecision
+      ? `Undo ${state.lastDecision.decision} of #${state.lastDecision.number} (Z)`
+      : "Nothing to undo";
+    const top = state.issues[0];
+    approveButton.disabled = rejectButton.disabled = busy || !top;
+    showError(state.error);
+
+    deck.replaceChildren();
+    if (!state.loaded) {
+      deck.append(el("div", { className: "empty", textContent: state.error ? "Could not load issues." : "Loading issues…" }));
+      return;
+    }
+    if (!top) {
+      deck.append(el("div", { className: "empty" }, [
+        el("strong", { textContent: "Inbox zero 🎉" }),
+        el("span", { textContent: "No open issues are waiting for a decision." }),
+      ]));
+      return;
+    }
+    if (state.issues[1]) deck.append(renderCard(state.issues[1], true));
+    deck.append(renderCard(top, false));
+  }
+
+  function setStamps(card, dx) {
+    const strength = Math.min(Math.abs(dx) / THRESHOLD, 1);
+    card.querySelector(".ship").style.opacity = dx > 0 ? strength : 0;
+    card.querySelector(".nope").style.opacity = dx < 0 ? strength : 0;
+  }
+
+  function attachDrag(card, issue) {
+    let startX = 0, startY = 0, dx = 0, dy = 0, dragging = false;
+    card.addEventListener("pointerdown", (event) => {
+      if (busy) return;
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      card.setPointerCapture(event.pointerId);
+      card.classList.add("dragging");
+    });
+    card.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      dx = event.clientX - startX;
+      dy = event.clientY - startY;
+      card.style.transform = `translate(${dx}px, ${dy * 0.3}px) rotate(${dx / 18}deg)`;
+      setStamps(card, dx);
+    });
+    const end = () => {
+      if (!dragging) return;
+      dragging = false;
+      card.classList.remove("dragging");
+      if (Math.abs(dx) >= THRESHOLD) {
+        decide(issue, dx > 0 ? "approve" : "reject", card);
+      } else {
+        card.classList.add("animate");
+        card.style.transform = "";
+        setStamps(card, 0);
+      }
+      dx = dy = 0;
+    };
+    card.addEventListener("pointerup", end);
+    card.addEventListener("pointercancel", end);
+  }
+
+  async function post(path, body) {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || response.statusText);
+    return result;
+  }
+
+  async function decide(issue, decision, card) {
+    if (busy) return;
+    busy = true;
+    card = card || deck.querySelector(".card:not(.behind)");
+    if (card) {
+      const direction = decision === "approve" ? 1 : -1;
+      card.classList.add("animate");
+      card.style.transform = `translate(${direction * 700}px, -40px) rotate(${direction * 30}deg)`;
+      card.style.opacity = "0";
+      setStamps(card, direction * THRESHOLD);
+      await new Promise((resolve) => setTimeout(resolve, 220));
+    }
+    try {
+      await post("/api/decide", { number: issue.number, decision });
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      busy = false;
+      render();
+    }
+  }
+
+  async function run(path) {
+    if (busy) return;
+    busy = true;
+    render();
+    try {
+      await post(path);
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      busy = false;
+      render();
+    }
+  }
+
+  approveButton.addEventListener("click", () => state.issues[0] && decide(state.issues[0], "approve"));
+  rejectButton.addEventListener("click", () => state.issues[0] && decide(state.issues[0], "reject"));
+  undoButton.addEventListener("click", () => run("/api/undo"));
+  document.getElementById("refresh").addEventListener("click", () => run("/api/refresh"));
+
+  document.addEventListener("keydown", (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const top = state.issues[0];
+    if (event.key === "ArrowRight" && top) decide(top, "approve");
+    else if (event.key === "ArrowLeft" && top) decide(top, "reject");
+    else if (event.key === "z" || event.key === "Z") { if (state.lastDecision) run("/api/undo"); }
+    else if (event.key === "r" || event.key === "R") run("/api/refresh");
+    else return;
+    event.preventDefault();
+  });
+
+  // The server pushes the full queue whenever it changes, including when the
+  // agent approves or rejects through canvas actions.
+  const events = new EventSource("/events");
+  events.addEventListener("state", (event) => {
+    state = JSON.parse(event.data);
+    if (!busy) render();
+  });
+  events.onerror = () => {
+    if (events.readyState === EventSource.CLOSED) showError("Lost connection to the extension. Reopen the canvas.");
+  };
+
+  render();
+</script>
+</body>
+</html>
