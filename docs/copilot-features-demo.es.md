@@ -45,6 +45,20 @@ Ubicaciones útiles:
 
 ## Descripción general de las funcionalidades
 
+### Temas de la sesión
+
+Esta sesión especializada abordará:
+
+- Introducción al Model Context Protocol (MCP).
+- Arquitectura de MCP: clientes, servidores y herramientas.
+- Conexión de agentes con API y sistemas empresariales.
+- Creación y reutilización de habilidades.
+- Herramientas y capacidades personalizadas para agentes.
+- Composición de herramientas en cadenas de herramientas para agentes.
+- Contexto compartido entre agentes.
+- Seguridad, permisos y gobernanza de integraciones.
+- Patrones para una plataforma empresarial extensible.
+
 ### MCP
 
 MCP separa un modelo de los detalles de implementación de una herramienta. Un

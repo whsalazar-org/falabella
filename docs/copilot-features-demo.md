@@ -42,6 +42,20 @@ Useful locations:
 
 ## Feature overview
 
+### Workshop topics
+
+This specialized session covers:
+
+- An introduction to Model Context Protocol (MCP).
+- MCP architecture: clients, servers, and tools.
+- Connecting agents to APIs and enterprise systems.
+- Creating and reusing skills.
+- Custom tools and capabilities for agents.
+- Composing tools into agent toolchains.
+- Sharing context between agents.
+- Security, permissions, and integration governance.
+- Patterns for an extensible enterprise platform.
+
 ### MCP
 
 MCP separates a model from the implementation details of a tool. An MCP
@@ -196,4 +210,3 @@ provider key.
 - [ ] Use MCP for one live repository or Actions lookup, if configured.
 - [ ] Run or explain the validation commands.
 - [ ] State which behavior is covered and where the evidence lives.
-
